@@ -18,20 +18,7 @@ pipeline{
         sh 'mvn test'
       }
       }
-    stage("Build & SonarQube analysis") {
-            agent any
-            steps {
-              withSonarQubeEnv('SonarSpring') {
-                sh 'java -version'
-                sh 'mvn clean package sonar:sonar'
-              }
-            }
-          }
-           stage("Quality gate") {
-            steps {
-                waitForQualityGate abortPipeline: true
-            }
-        }
+    
   
     stage('collect artifact'){
      steps{
@@ -43,12 +30,12 @@ pipeline{
      steps{
      
      rtUpload (
-    serverId: 'ARTIFACTORY_SERVER',
+    serverId: 'jfrog_server1',
     spec: '''{
           "files": [
             {
               "pattern": "target/*.jar",
-              "target": "art-doc-dev-loc"
+              "target": "passport_TM_Maven"
             }
          ]
     }''',
@@ -62,11 +49,11 @@ pipeline{
             steps{
      
                 rtDownload (
-                    serverId: 'ARTIFACTORY_SERVER',
+                    serverId: 'jfrog_server1',
                     spec: '''{
                     "files": [
                          {
-                             "pattern": "art-doc-dev-loc/",
+                             "pattern": "passport_TM_Maven",
                              "target": ""
                         }
                      ]
@@ -77,6 +64,25 @@ pipeline{
      
     
   }
+  post {  
+         always {  
+             echo 'This will always run'  
+         }  
+         success {   
+            echo "========Deploying executed successfully========"
+            emailext attachLog: true, body: "<b>Example</b><br>Project: ${env.JOB_NAME}", from: 'nameisdhiva007@gmail.com', mimeType: 'text/html', replyTo: '', subject: "Deploy Success CI: Project name -> ${env.JOB_NAME}", to: "nameisdhiva007@gmail.com";
+         }  
+         failure {  
+             mail bcc: '', body: "<b>Example</b><br>Project: ${env.JOB_NAME} <br>Build Number: ${env.BUILD_NUMBER} <br> URL de build: ${env.BUILD_URL}", cc: '', charset: 'UTF-8', from: 'nameisdhiva007@gmail.com', mimeType: 'text/html', replyTo: '', subject: "ERROR CI: Project name -> ${env.JOB_NAME}", to: "nameisdhiva007@gmail.com";  
+         }  
+         unstable {  
+             echo 'This will run only if the run was marked as unstable'  
+         }  
+         changed {  
+             echo 'This will run only if the state of the Pipeline has changed'  
+             echo 'For example, if the Pipeline was previously failing but is now successful'  
+         }  
+     }
  
   }
 
